@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Digital Wellbeing Pro</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: linear-gradient(135deg, #141e30, #243b55);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .app {
+            width: 380px;
+            background: #1e1e2f;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0px 0px 25px black;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input {
+            width: 95%;
+            padding: 10px;
+            margin: 6px;
+            border-radius: 8px;
+            border: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #ff416c;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #ff4b2b;
+        }
+
+        .card {
+            margin-top: 15px;
+            padding: 12px;
+            background: #2c2c3e;
+            border-radius: 10px;
+        }
+
+        .high { color: red; }
+        .medium { color: orange; }
+        .low { color: lightgreen; }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <h2>📱 Digital Wellbeing</h2>
+
+    <input id="screen" placeholder="Screen Time (hrs)">
+    <input id="social" placeholder="Social Media (hrs)">
+    <input id="sleep" placeholder="Sleep Hours">
+    <input id="unlock" placeholder="Unlock Count">
+
+    <button onclick="analyze()">Analyze</button>
+
+    <div id="result" class="card"></div>
+    <canvas id="chart" class="card"></canvas>
+    <div id="tips" class="card"></div>
+
+</div>
+
+<script>
+let chart;
+
+function analyze(){
+
+    let screen = document.getElementById('screen').value;
+    let social = document.getElementById('social').value;
+    let sleep = document.getElementById('sleep').value;
+    let unlock = document.getElementById('unlock').value;
+
+    fetch('http://127.0.0.1:5000/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            screen_time: screen,
+            social_media: social,
+            sleep_hours: sleep,
+            unlocks: unlock
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        let riskText = "";
+        let tips = "";
+
+        if(data.risk_level == 2){
+            riskText = "<span class='high'>HIGH RISK ⚠</span>";
+            tips = "📵 Reduce usage<br>😴 Sleep properly<br>🧘 Meditation recommended";
+            alert("⚠ High Usage Detected!");
+        }
+        else if(data.risk_level == 1){
+            riskText = "<span class='medium'>MEDIUM RISK</span>";
+            tips = "⏳ Limit apps<br>📊 Monitor usage";
+        }
+        else{
+            riskText = "<span class='low'>LOW RISK ✅</span>";
+            tips = "👍 Good habits<br>💪 Keep it up!";
+        }
+
+        document.getElementById('result').innerHTML =
+            `<b>Risk:</b> ${riskText}<br>
+             <b>Stress:</b> ${data.stress}`;
+
+        document.getElementById('tips').innerHTML =
+            `<b>💡 Recommendations</b><br>${tips}`;
+
+        // Chart
+        let ctx = document.getElementById('chart').getContext('2d');
+
+        if(chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Screen', 'Social', 'Sleep', 'Unlocks'],
+                datasets: [{
+                    label: 'Usage Data',
+                    data: [screen, social, sleep, unlock],
+                }]
+            }
+        });
+
+    });
+}
+</script>
+
+</body>
+</html>
